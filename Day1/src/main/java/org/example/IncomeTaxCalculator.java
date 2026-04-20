@@ -1,5 +1,8 @@
 package org.example;
 
+import org.springframework.stereotype.Component;
+
+@Component
 public class IncomeTaxCalculator implements TaxCalculator {
     @Override
     public double calculateTax(double salary) {

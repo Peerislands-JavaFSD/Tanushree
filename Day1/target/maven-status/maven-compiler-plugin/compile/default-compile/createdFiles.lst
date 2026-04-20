@@ -1,0 +1,9 @@
+org/example/MainJavaConfig.class
+org/example/IncomeTaxCalculator.class
+org/example/Main.class
+org/example/PayrollProcessor.class
+org/example/TaxCalculator.class
+org/example/BonusScheme.class
+org/example/PerformanceBonus.class
+org/example/PayrollJavaConfig.class
+org/example/MainAnnotation.class
