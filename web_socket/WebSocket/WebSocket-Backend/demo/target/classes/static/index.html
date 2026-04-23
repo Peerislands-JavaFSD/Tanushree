@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Push Notifications</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .chat-container {
+            width: 450px;
+            height: 550px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .header {
+            padding: 15px;
+            background: #075e54;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .messages {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            background: #e5ddd5;
+        }
+        .message {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            max-width: 80%;
+        }
+        .message-user {
+            font-weight: bold;
+            color: #075e54;
+            margin-bottom: 5px;
+        }
+        .message-text {
+            word-wrap: break-word;
+        }
+        .input-area {
+            padding: 10px;
+            background: white;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #ddd;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+        button {
+            padding: 10px 20px;
+            background: #075e54;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #054a3e;
+        }
+        .status {
+            font-size: 12px;
+            margin-top: 5px;
+            color: #25d366;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">
+            Push Notifications
+            <div class="status" id="status">Connecting...</div>
+        </div>
+        <div class="messages" id="messages">
+            <div style="text-align: center; color: #888; margin-top: 50px;">
+                No messages yet. Type something!
+            </div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Type a message..." />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let stompClient = null;
+        
+        function connect() {
+            const socket = new SockJS('/push');
+            stompClient = Stomp.over(socket);
+            
+            stompClient.connect({}, function(frame) {
+                document.getElementById('status').innerHTML = 'Connected ✅';
+                document.getElementById('status').style.color = '#25d366';
+                console.log('Connected: ' + frame);
+                
+                stompClient.subscribe('/topic/push', function(message) {
+                    const msg = JSON.parse(message.body);
+                    displayMessage(msg);
+                });
+            }, function(error) {
+                document.getElementById('status').innerHTML = 'Disconnected ❌';
+                document.getElementById('status').style.color = 'red';
+                console.error('Error:', error);
+                setTimeout(connect, 5000);
+            });
+        }
+        
+        function displayMessage(msg) {
+            const messagesDiv = document.getElementById('messages');
+            
+            // Remove empty state message if present
+            if (messagesDiv.children.length === 1 && 
+                messagesDiv.children[0].innerText.includes('No messages yet')) {
+                messagesDiv.innerHTML = '';
+            }
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            messageDiv.innerHTML = `
+                <div class="message-user">${msg.user || 'Student'}</div>
+                <div class="message-text">${msg.text || msg.message}</div>
+            `;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+            
+            if (message && stompClient && stompClient.connected) {
+                const msg = {
+                    user: 'Student',
+                    text: message
+                };
+                stompClient.send('/app/send', {}, JSON.stringify(msg));
+                input.value = '';
+            } else {
+                console.log('Cannot send - not connected');
+                alert('Not connected to server. Please wait...');
+            }
+        }
+        
+        // Allow Enter key to send
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+        
+        // Connect when page loads
+        window.onload = connect;
+    </script>
+</body>
+</html>
